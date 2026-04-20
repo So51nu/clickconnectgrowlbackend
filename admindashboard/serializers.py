@@ -55,12 +55,70 @@ class PropertyFloorPlanSerializer(serializers.ModelSerializer):
         return ""
 
 
+
+from rest_framework import serializers
+from .models import PropertyAttachment, PropertyNearbyPlace, PropertyReview
+
+class PropertyAttachmentSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PropertyAttachment
+        fields = ["id", "title", "file_url", "file_name"]
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        if obj.file:
+            return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        return None
+
+    def get_file_name(self, obj):
+        return obj.file.name.split("/")[-1] if obj.file else ""
+
+
+class PropertyNearbyPlaceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyNearbyPlace
+        fields = ["id", "place_name", "distance"]
+
+
+class PropertyReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyReview
+        fields = ["id", "name", "email", "message", "rating", "created_at"]
+
+
+
+from rest_framework import serializers
+from .models import PropertyInquiry, PropertyReview, AgentProfile
+
+class SimpleAgentProfileSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AgentProfile
+        fields = ["id", "full_name", "email", "phone", "office_number", "avatar_url"]
+
+    def get_avatar_url(self, obj):
+        request = self.context.get("request")
+        if obj.avatar:
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
 class PropertySerializer(serializers.ModelSerializer):
     images = PropertyImageSerializer(many=True, read_only=True)
     floor_plans = PropertyFloorPlanSerializer(many=True, read_only=True)
     imageSrc = serializers.SerializerMethodField()
     postingDate = serializers.SerializerMethodField()
     expiryDate = serializers.SerializerMethodField()
+    contact_seller = SimpleAgentProfileSerializer(read_only=True)
+    reviews = PropertyReviewSerializer(many=True, read_only=True)
+    attachments = PropertyAttachmentSerializer(many=True, read_only=True)
+    nearby_places = PropertyNearbyPlaceSerializer(many=True, read_only=True)
+    reviews = PropertyReviewSerializer(many=True, read_only=True)
+    fallback_sellers = serializers.SerializerMethodField()
+    virtual_tour_image_url = serializers.SerializerMethodField()
+    city = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Property
@@ -105,7 +163,43 @@ class PropertySerializer(serializers.ModelSerializer):
             "imageSrc",
             "images",
             "floor_plans",
+            "city",
+            "city_slug",
+            "developer_name",
+            "developer_slug",
+            "short_location",
+            "carpet_area",
+            "possession_date",
+            "attachments",
+            "nearby_places",
+            "reviews",
+            "virtual_tour_image_url",
+            "city",
+            "contact_seller",
+            "reviews",
+            "fallback_sellers",
         ]
+
+    
+
+    def get_fallback_sellers(self, obj):
+        request = self.context.get("request")
+        agents = AgentProfile.objects.all()[:10]
+        data = []
+        for agent in agents:
+            data.append({
+                "id": agent.id,
+                "full_name": agent.full_name,
+                "email": agent.email,
+                "phone": agent.phone or agent.office_number,
+                "avatar_url": request.build_absolute_uri(agent.avatar.url) if request and agent.avatar else None,
+            })
+        return data
+    def get_virtual_tour_image_url(self, obj):
+        request = self.context.get("request")
+        if getattr(obj, "virtual_tour_image", None):
+            return request.build_absolute_uri(obj.virtual_tour_image.url) if request else obj.virtual_tour_image.url
+        return None
 
     def get_imageSrc(self, obj):
         request = self.context.get("request")
@@ -123,6 +217,29 @@ class PropertySerializer(serializers.ModelSerializer):
         return obj.expiry_date.strftime("%b %d, %Y") if obj.expiry_date else "No Expiry"
 
 
+
+
+class PropertyReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyReview
+        fields = ["id", "name", "email", "message", "rating", "created_at"]
+
+
+class PropertyInquirySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyInquiry
+        fields = [
+            "id",
+            "property",
+            "seller",
+            "inquiry_type",
+            "name",
+            "email",
+            "phone",
+            "message",
+            "created_at",
+        ]
+        read_only_fields = ["created_at"]
 class AgentProfileSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     poster_url = serializers.SerializerMethodField()
@@ -201,3 +318,4 @@ class PackagePlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackagePlan
         fields = "__all__"
+

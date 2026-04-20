@@ -44,6 +44,9 @@ INSTALLED_APPS = [
     "contact",
     "testimonials",
     "admindashboard",
+    "project_blog",
+    "faq",
+    "aboutus",
 ]
 
 MIDDLEWARE = [
@@ -141,3 +144,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "clickconnectmedia1@gmail.com"
+EMAIL_HOST_PASSWORD = "velwkprlhmbyyupw"
+DEFAULT_FROM_EMAIL = "clickconnectmedia1@gmail.com"
+
+ADMIN_NOTIFICATION_EMAIL = "clickconnectmedia1@gmail.com"

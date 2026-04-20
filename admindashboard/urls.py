@@ -13,7 +13,12 @@ urlpatterns = [
 
     path("save-searches/", views.save_search_list_create, name="save-search-list-create"),
     path("save-searches/<int:pk>/", views.save_search_delete, name="save-search-delete"),
-
+    path("cities/", views.city_directory, name="city-directory"),
+    path("developers/", views.developer_directory, name="developer-directory"),
+    path("cities/<slug:city_slug>/properties/", views.city_property_list, name="city-property-list"),
+    path("developers/<slug:developer_slug>/properties/", views.developer_property_list, name="developer-property-list"),
+    path("properties/<int:pk>/contact-seller/", views.property_contact_seller, name="property-contact-seller"),
+    path("cities/<slug:city_slug>/developers/<slug:developer_slug>/properties/", views.city_developer_property_list, name="city-developer-property-list"),
     path("profile/", views.profile_detail, name="profile-detail"),
     path("change-password/", views.change_password, name="change-password"),
 

@@ -373,7 +373,10 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
-
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import PropertyInquiry, PropertyReview
+from .serializers import PropertyInquirySerializer
 from .models import (
     AgentProfile,
     PackagePlan,
@@ -563,6 +566,14 @@ def property_list_create(request):
         video_url=data.get("video_url", ""),
         is_favorite=parse_bool(data.get("is_favorite"), False),
         is_approved=parse_bool(data.get("is_approved"), True),
+        city=data.get("city", ""),
+        city_slug=data.get("city_slug", ""),
+        developer_name=data.get("developer_name", ""),
+        developer_slug=data.get("developer_slug", ""),
+        short_location=data.get("short_location", ""),
+        carpet_area=data.get("carpet_area", ""),
+        possession_date=data.get("possession_date", ""),
+        
         expiry_date=timezone.now().date() + timedelta(days=30),
     )
 
@@ -573,6 +584,13 @@ def property_list_create(request):
             image=img,
             is_primary=(index == 0),
         )
+    
+
+    if request.FILES.get("virtual_tour_image"):
+        property_obj.virtual_tour_image = request.FILES.get("virtual_tour_image")
+
+    if request.FILES.get("video_file"):
+        property_obj.video_file = request.FILES.get("video_file")
 
     save_floor_plans_from_request(property_obj, request)
 
@@ -614,6 +632,13 @@ def property_detail(request, pk):
             "virtual_tour_type",
             "virtual_tour_embed_code",
             "video_url",
+            "city",
+            "city_slug",
+            "developer_name",
+            "developer_slug",
+            "short_location",
+            "carpet_area",
+            "possession_date",
         ]:
             if field in data:
                 setattr(property_obj, field, data.get(field))
@@ -663,8 +688,82 @@ def property_detail(request, pk):
 
     property_obj.delete()
     return Response({"detail": "Property deleted successfully"})
+from django.core.mail import send_mail
+from django.conf import settings
 
+@api_view(["POST"])
+def property_contact_seller(request, pk):
+    try:
+        property_obj = Property.objects.select_related("contact_seller").get(pk=pk)
+    except Property.DoesNotExist:
+        return Response({"detail": "Property not found"}, status=status.HTTP_404_NOT_FOUND)
 
+    seller = property_obj.contact_seller
+    if not seller:
+        seller = AgentProfile.objects.first()
+
+    inquiry_type = request.data.get("inquiry_type", "contact_seller")
+    name = request.data.get("name", "").strip()
+    email = request.data.get("email", "").strip()
+    phone = request.data.get("phone", "").strip()
+    message = request.data.get("message", "").strip()
+
+    if not name or not message:
+        return Response(
+            {"detail": "Name and message are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    inquiry = PropertyInquiry.objects.create(
+        property=property_obj,
+        seller=seller,
+        inquiry_type=inquiry_type,
+        name=name,
+        email=email,
+        phone=phone,
+        message=message,
+    )
+
+    seller_email = seller.email if seller and seller.email else None
+    admin_email = getattr(settings, "ADMIN_NOTIFICATION_EMAIL", "")
+
+    recipients = []
+    if seller_email:
+        recipients.append(seller_email)
+    if admin_email:
+        recipients.append(admin_email)
+
+    if recipients:
+        subject = f"New inquiry for {property_obj.title}"
+        body = (
+            f"Property: {property_obj.title}\n"
+            f"Property ID: {property_obj.property_code}\n"
+            f"Inquiry Type: {inquiry_type}\n"
+            f"Name: {name}\n"
+            f"Email: {email or '-'}\n"
+            f"Phone: {phone or '-'}\n"
+            f"Assigned Seller: {seller.full_name if seller else '-'}\n\n"
+            f"Message:\n{message}\n"
+        )
+
+        try:
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                recipients,
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+    return Response(
+        {
+            "detail": "Inquiry sent successfully",
+            "inquiry_id": inquiry.id,
+        },
+        status=status.HTTP_201_CREATED,
+    )
 @api_view(["POST"])
 def property_toggle_favorite(request, pk):
     try:
@@ -715,6 +814,51 @@ def save_search_delete(request, pk):
 
     obj.delete()
     return Response({"detail": "Deleted successfully"})
+
+
+
+@api_view(["GET"])
+def city_property_list(request, city_slug):
+    qs = Property.objects.filter(city_slug=city_slug).order_by("-id")
+    return Response(PropertySerializer(qs, many=True, context={"request": request}).data)
+
+
+@api_view(["GET"])
+def developer_property_list(request, developer_slug):
+    qs = Property.objects.filter(developer_slug=developer_slug).order_by("-id")
+    return Response(PropertySerializer(qs, many=True, context={"request": request}).data)
+
+
+@api_view(["GET"])
+def city_developer_property_list(request, city_slug, developer_slug):
+    qs = Property.objects.filter(
+        city_slug=city_slug,
+        developer_slug=developer_slug
+    ).order_by("-id")
+    return Response(PropertySerializer(qs, many=True, context={"request": request}).data)
+
+
+@api_view(["GET"])
+def developer_directory(request):
+    developers = (
+        Property.objects.exclude(developer_name="")
+        .values("developer_name", "developer_slug", "city", "city_slug")
+        .distinct()
+        .order_by("developer_name")
+    )
+    return Response(list(developers))
+
+
+@api_view(["GET"])
+def city_directory(request):
+    cities = (
+        Property.objects.exclude(city="")
+        .values("city", "city_slug")
+        .distinct()
+        .order_by("city")
+    )
+    return Response(list(cities))
+
 
 
 @api_view(["GET", "PUT"])

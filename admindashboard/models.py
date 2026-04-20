@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+from django.utils.text import slugify
 
 class AgentProfile(models.Model):
     user = models.OneToOneField(
@@ -78,7 +78,13 @@ class Property(models.Model):
     neighborhood = models.CharField(max_length=100, blank=True, default="")
     location = models.CharField(max_length=255, blank=True, default="")
     map_embed_url = models.TextField(blank=True, default="")
-
+    contact_seller = models.ForeignKey(
+    "AgentProfile",
+    related_name="assigned_properties",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True
+    )
     price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     unit_price = models.CharField(max_length=50, blank=True, default="")
     before_price_label = models.CharField(max_length=100, blank=True, default="")
@@ -108,14 +114,57 @@ class Property(models.Model):
     is_approved = models.BooleanField(default=True)
     posting_date = models.DateField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
-
+    city = models.CharField(max_length=120, blank=True, default="")
+    city_slug = models.SlugField(max_length=150, blank=True, default="")
+    developer_name = models.CharField(max_length=180, blank=True, default="")
+    developer_slug = models.SlugField(max_length=200, blank=True, default="")
+    short_location = models.CharField(max_length=180, blank=True, default="")
+    carpet_area = models.CharField(max_length=100, blank=True, default="")
+    possession_date = models.CharField(max_length=100, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.city and not self.city_slug:
+            self.city_slug = slugify(self.city)
+        if self.developer_name and not self.developer_slug:
+            self.developer_slug = slugify(self.developer_name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
 
 
+from django.db import models
+class PropertyAttachment(models.Model):
+    property = models.ForeignKey("Property", related_name="attachments", on_delete=models.CASCADE)
+    title = models.CharField(max_length=255, blank=True, default="")
+    file = models.FileField(upload_to="properties/attachments/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title or self.file.name
+
+
+class PropertyNearbyPlace(models.Model):
+    property = models.ForeignKey("Property", related_name="nearby_places", on_delete=models.CASCADE)
+    place_name = models.CharField(max_length=150)
+    distance = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"{self.place_name} - {self.distance}"
+
+
+class PropertyReview(models.Model):
+    property = models.ForeignKey("Property", related_name="reviews", on_delete=models.CASCADE)
+    name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True, default="")
+    message = models.TextField()
+    rating = models.PositiveIntegerField(default=5)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.property.title}"
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="properties/images/")
@@ -141,8 +190,42 @@ class PropertyFloorPlan(models.Model):
         return f"{self.property.title} - {self.floor_name}"
 
 
+from django.db import models
+
+class PropertyInquiry(models.Model):
+    INQUIRY_TYPE_CHOICES = (
+        ("contact_seller", "Contact Seller"),
+        ("more_about_property", "More About Property"),
+    )
+
+    property = models.ForeignKey("Property", related_name="inquiries", on_delete=models.CASCADE)
+    seller = models.ForeignKey("AgentProfile", related_name="property_inquiries", on_delete=models.SET_NULL, null=True, blank=True)
+
+    inquiry_type = models.CharField(max_length=50, choices=INQUIRY_TYPE_CHOICES, default="contact_seller")
+    name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
+    message = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.property.title}"
+
+
+class PropertyReview(models.Model):
+    property = models.ForeignKey("Property", related_name="reviews", on_delete=models.CASCADE)
+    name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True, default="")
+    message = models.TextField()
+    rating = models.PositiveIntegerField(default=5)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.property.title}"
+    
 class Review(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="property_reviews", null=True, blank=True)
     reviewer_name = models.CharField(max_length=100)
     reviewer_avatar = models.ImageField(upload_to="reviews/avatar/", blank=True, null=True)
     rating = models.PositiveIntegerField(default=5)
@@ -160,4 +243,5 @@ class SaveSearch(models.Model):
     published_at = models.DateField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
+        return self.title 
+    
