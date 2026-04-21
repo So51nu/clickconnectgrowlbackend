@@ -1,0 +1,9 @@
+.env
+*.zip
+*.tar
+*.gz
+*.bz2
+*.7z
+*.rar
+.env.*
+*.env
