@@ -23,8 +23,9 @@ class PropertyFloorPlanInline(admin.TabularInline):
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
     list_display = ("id","title", "property_code", "property_status", "post_status","contact_seller", "price", "is_favorite","is_approved", "posting_date")
-    list_filter = ("property_status", "post_status", "property_type", "property_label", "is_favorite","contact_seller")
-    search_fields = ("title", "property_code", "full_address")
+    list_filter = ("property_status", "post_status", "property_type", "property_label", "is_favorite","contact_seller","is_approved",)
+    search_fields = ("title", "property_code", "full_address","developer_name", "city")
+    list_editable = ["post_status", "is_approved"]
     inlines = [PropertyImageInline, PropertyFloorPlanInline]
 
 

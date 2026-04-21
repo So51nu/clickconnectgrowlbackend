@@ -1,9 +1,9 @@
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import BlogPost, BlogCategory, BlogComment
+from .models import BlogPost, BlogCategory, BlogComment, BlogMedia, BlogBlock
 from .serializers import (
     BlogPostListSerializer,
     BlogPostDetailSerializer,
@@ -18,7 +18,12 @@ def blog_list(request):
     category_slug = request.GET.get("category", "").strip()
     featured = request.GET.get("featured", "").strip()
 
-    qs = BlogPost.objects.filter(status="published").order_by("-created_at")
+    qs = (
+        BlogPost.objects.filter(status="published")
+        .select_related("category")
+        .prefetch_related("media_items", "comments")
+        .order_by("-published_at", "-created_at")
+    )
 
     if search:
         qs = qs.filter(
@@ -26,6 +31,7 @@ def blog_list(request):
             | Q(short_description__icontains=search)
             | Q(content__icontains=search)
             | Q(author_name__icontains=search)
+            | Q(tags__icontains=search)
         )
 
     if category_slug:
@@ -41,7 +47,16 @@ def blog_list(request):
 @api_view(["GET"])
 def blog_detail(request, slug):
     try:
-        post = BlogPost.objects.get(slug=slug, status="published")
+        post = (
+            BlogPost.objects.filter(slug=slug, status="published")
+            .select_related("category")
+            .prefetch_related(
+                Prefetch("media_items", queryset=BlogMedia.objects.order_by("sort_order", "id")),
+                Prefetch("blocks", queryset=BlogBlock.objects.order_by("sort_order", "id")),
+                Prefetch("comments", queryset=BlogComment.objects.filter(is_approved=True)),
+            )
+            .get()
+        )
     except BlogPost.DoesNotExist:
         return Response({"detail": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -63,13 +78,26 @@ def related_blogs(request, slug):
     except BlogPost.DoesNotExist:
         return Response([], status=status.HTTP_200_OK)
 
-    qs = BlogPost.objects.filter(status="published").exclude(slug=slug)
+    qs = (
+        BlogPost.objects.filter(status="published")
+        .exclude(slug=slug)
+        .select_related("category")
+        .prefetch_related("media_items", "comments")
+    )
 
     if post.category_id:
-        qs = qs.filter(category=post.category)
+        related = list(qs.filter(category=post.category).order_by("-published_at", "-created_at")[:6])
+        if len(related) < 6:
+            remaining = 6 - len(related)
+            existing_ids = [item.id for item in related]
+            fallback = list(
+                qs.exclude(id__in=existing_ids).order_by("-published_at", "-created_at")[:remaining]
+            )
+            related.extend(fallback)
+        serializer = BlogPostListSerializer(related, many=True, context={"request": request})
+        return Response(serializer.data)
 
-    qs = qs.order_by("-created_at")[:6]
-
+    qs = qs.order_by("-published_at", "-created_at")[:6]
     serializer = BlogPostListSerializer(qs, many=True, context={"request": request})
     return Response(serializer.data)
 

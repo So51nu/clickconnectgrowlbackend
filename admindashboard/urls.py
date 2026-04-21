@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from .source_manager_views import *
 urlpatterns = [
     path("dashboard/", views.dashboard_summary, name="dashboard-summary"),
 
@@ -10,7 +10,9 @@ urlpatterns = [
 
     path("favorites/", views.favorite_properties, name="favorite-properties"),
     path("reviews/", views.review_list, name="review-list"),
-
+    path("source-manager/dashboard/", SourceManagerDashboardView.as_view(), name="source-manager-dashboard"),
+    path("source-manager/add-property/", SourceManagerPropertyCreateView.as_view(), name="source-manager-add-property"),
+    path("source-manager/my-properties/",SourceManagerMyPropertiesView.as_view(),name="source-manager-my-properties",),
     path("save-searches/", views.save_search_list_create, name="save-search-list-create"),
     path("save-searches/<int:pk>/", views.save_search_delete, name="save-search-delete"),
     path("cities/", views.city_directory, name="city-directory"),
