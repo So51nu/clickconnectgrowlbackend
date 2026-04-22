@@ -319,3 +319,89 @@ class PackagePlanSerializer(serializers.ModelSerializer):
         model = PackagePlan
         fields = "__all__"
 
+
+
+from .models import (
+    CustomerPropertyView,
+    CustomerFavorite,
+    CustomerVisitBooking,
+    CustomerLikedVideo,
+    CustomerSearchHistory,
+)
+
+
+class CustomerPropertyCardSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    seller_name = serializers.SerializerMethodField()
+    seller_phone = serializers.SerializerMethodField()
+    seller_avatar = serializers.SerializerMethodField()
+    configuration = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Property
+        fields = [
+            "id",
+            "title",
+            "location",
+            "short_location",
+            "price",
+            "bedrooms",
+            "video_url",
+            "image",
+            "seller_name",
+            "seller_phone",
+            "seller_avatar",
+            "configuration",
+            "is_favorite",
+        ]
+
+    def get_image(self, obj):
+        request = self.context.get("request")
+        primary = obj.images.filter(is_primary=True).first() or obj.images.first()
+        if primary and primary.image:
+            return request.build_absolute_uri(primary.image.url) if request else primary.image.url
+        return ""
+
+    def get_seller_name(self, obj):
+        if obj.contact_seller:
+            return obj.contact_seller.full_name
+        return ""
+
+    def get_seller_phone(self, obj):
+        if obj.contact_seller:
+            return obj.contact_seller.phone or obj.contact_seller.office_number
+        return ""
+
+    def get_seller_avatar(self, obj):
+        request = self.context.get("request")
+        if obj.contact_seller and obj.contact_seller.avatar:
+            return request.build_absolute_uri(obj.contact_seller.avatar.url) if request else obj.contact_seller.avatar.url
+        return ""
+
+    def get_configuration(self, obj):
+        configs = []
+        if obj.bedrooms:
+            configs.append(f"{obj.bedrooms} BHK")
+        return ", ".join(configs) if configs else obj.property_type.title()
+
+    def get_is_favorite(self, obj):
+        request = self.context.get("request")
+        user_id = request.GET.get("user_id") if request else None
+        if not user_id:
+            return False
+        return CustomerFavorite.objects.filter(user_id=user_id, property=obj).exists()
+
+
+class CustomerVisitBookingSerializer(serializers.ModelSerializer):
+    property_title = serializers.CharField(source="property.title", read_only=True)
+
+    class Meta:
+        model = CustomerVisitBooking
+        fields = "__all__"
+
+
+class CustomerSearchHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerSearchHistory
+        fields = "__all__"

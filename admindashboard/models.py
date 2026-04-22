@@ -245,3 +245,119 @@ class SaveSearch(models.Model):
     def __str__(self):
         return self.title 
     
+
+
+
+from django.conf import settings
+
+
+class CustomerPropertyView(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_property_views"
+    )
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="customer_views"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "property")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} viewed {self.property.title}"
+
+
+class CustomerFavorite(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_favorites"
+    )
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="customer_favorites"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "property")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} favorite {self.property.title}"
+
+
+class CustomerVisitBooking(models.Model):
+    STATUS_CHOICES = (
+        ("upcoming", "Upcoming"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_visit_bookings"
+    )
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="customer_visit_bookings"
+    )
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=30)
+    visit_date = models.DateField()
+    visit_time = models.TimeField()
+    message = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="upcoming")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.property.title} - {self.visit_date}"
+
+
+class CustomerLikedVideo(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_liked_videos"
+    )
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="customer_liked_videos"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "property")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} liked video {self.property.title}"
+
+
+class CustomerSearchHistory(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_search_history"
+    )
+    title = models.CharField(max_length=255)
+    parameters = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} searched {self.title}"

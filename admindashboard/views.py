@@ -929,3 +929,149 @@ def package_detail(request):
             is_active=True,
         )
     return Response(PackagePlanSerializer(package).data)
+
+
+
+from django.contrib.auth.models import User
+from .models import (
+    CustomerPropertyView,
+    CustomerFavorite,
+    CustomerVisitBooking,
+    CustomerLikedVideo,
+    CustomerSearchHistory,
+)
+from .serializers import (
+    CustomerPropertyCardSerializer,
+    CustomerVisitBookingSerializer,
+    CustomerSearchHistorySerializer,
+)
+
+@api_view(["GET"])
+def customer_dashboard_summary(request, user_id):
+    return Response({
+        "viewed_count": CustomerPropertyView.objects.filter(user_id=user_id).count(),
+        "favorite_count": CustomerFavorite.objects.filter(user_id=user_id).count(),
+        "visit_count": CustomerVisitBooking.objects.filter(user_id=user_id, status="upcoming").count(),
+        "booking_count": CustomerVisitBooking.objects.filter(user_id=user_id).count(),
+        "liked_count": CustomerLikedVideo.objects.filter(user_id=user_id).count(),
+        "search_count": CustomerSearchHistory.objects.filter(user_id=user_id).count(),
+    })
+
+
+@api_view(["GET"])
+def customer_viewed_properties(request, user_id):
+    property_ids = CustomerPropertyView.objects.filter(user_id=user_id).values_list("property_id", flat=True)
+    qs = Property.objects.filter(id__in=property_ids).order_by("-id")
+    serializer = CustomerPropertyCardSerializer(qs, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def customer_favorite_properties(request, user_id):
+    property_ids = CustomerFavorite.objects.filter(user_id=user_id).values_list("property_id", flat=True)
+    qs = Property.objects.filter(id__in=property_ids).order_by("-id")
+    serializer = CustomerPropertyCardSerializer(qs, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def customer_toggle_favorite(request):
+    user_id = request.data.get("user_id")
+    property_id = request.data.get("property_id")
+
+    if not user_id or not property_id:
+        return Response({"success": False, "message": "user_id and property_id required"}, status=400)
+
+    favorite, created = CustomerFavorite.objects.get_or_create(
+        user_id=user_id,
+        property_id=property_id,
+    )
+
+    if created:
+        return Response({"success": True, "is_favorite": True, "message": "Added to favorites"})
+
+    favorite.delete()
+    return Response({"success": True, "is_favorite": False, "message": "Removed from favorites"})
+
+
+@api_view(["POST"])
+def customer_add_view(request):
+    user_id = request.data.get("user_id")
+    property_id = request.data.get("property_id")
+
+    if not user_id or not property_id:
+        return Response({"success": False, "message": "user_id and property_id required"}, status=400)
+
+    CustomerPropertyView.objects.get_or_create(
+        user_id=user_id,
+        property_id=property_id,
+    )
+    return Response({"success": True, "message": "View added"})
+
+
+@api_view(["POST"])
+def customer_book_visit(request):
+    serializer = CustomerVisitBookingSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"success": True, "message": "Visit booked successfully", "data": serializer.data},
+            status=201
+        )
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["GET"])
+def customer_visits(request, user_id):
+    status_filter = request.GET.get("status")
+    qs = CustomerVisitBooking.objects.filter(user_id=user_id)
+
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    serializer = CustomerVisitBookingSerializer(qs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def customer_like_video(request):
+    user_id = request.data.get("user_id")
+    property_id = request.data.get("property_id")
+
+    if not user_id or not property_id:
+        return Response({"success": False, "message": "user_id and property_id required"}, status=400)
+
+    liked, created = CustomerLikedVideo.objects.get_or_create(
+        user_id=user_id,
+        property_id=property_id,
+    )
+
+    if created:
+        return Response({"success": True, "liked": True, "message": "Video liked"})
+
+    liked.delete()
+    return Response({"success": True, "liked": False, "message": "Video unliked"})
+
+
+@api_view(["GET"])
+def customer_liked_videos(request, user_id):
+    property_ids = CustomerLikedVideo.objects.filter(user_id=user_id).values_list("property_id", flat=True)
+    qs = Property.objects.filter(id__in=property_ids).order_by("-id")
+    serializer = CustomerPropertyCardSerializer(qs, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def customer_save_search(request):
+    serializer = CustomerSearchHistorySerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["GET"])
+def customer_search_history(request, user_id):
+    qs = CustomerSearchHistory.objects.filter(user_id=user_id)
+    serializer = CustomerSearchHistorySerializer(qs, many=True)
+    return Response(serializer.data)
