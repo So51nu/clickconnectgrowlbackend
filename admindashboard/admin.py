@@ -106,6 +106,7 @@ from .models import (
     CustomerVisitBooking,
     CustomerLikedVideo,
     CustomerSearchHistory,
+    CustomerReferral,
 )
 
 
@@ -281,3 +282,30 @@ class CustomerSearchHistoryAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "title", "created_at")
     search_fields = ("user__username", "user__email", "title")
     list_filter = ("created_at",)
+
+
+
+@admin.register(CustomerReferral)
+class CustomerReferralAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "inviter_name",
+        "invitee_name",
+        "invitee_phone",
+        "relation",
+        "referral_type",
+        "property",
+        "location",
+        "created_at",
+    )
+    search_fields = (
+        "inviter_name",
+        "inviter_phone",
+        "invitee_name",
+        "invitee_phone",
+        "invitee_email",
+        "location",
+        "property__title",
+    )
+    list_filter = ("relation", "referral_type", "created_at")

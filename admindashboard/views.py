@@ -1075,3 +1075,146 @@ def customer_search_history(request, user_id):
     qs = CustomerSearchHistory.objects.filter(user_id=user_id)
     serializer = CustomerSearchHistorySerializer(qs, many=True)
     return Response(serializer.data)
+
+
+
+from .models import CustomerReferral
+from .serializers import CustomerReferralSerializer
+
+from urllib.parse import quote
+
+
+@api_view(["POST"])
+def create_customer_referrals(request):
+    user_id = request.data.get("user_id")
+    inviter_name = request.data.get("inviter_name")
+    inviter_phone = request.data.get("inviter_phone")
+    invitees = request.data.get("invitees", [])
+
+    if not user_id or not inviter_name or not inviter_phone:
+        return Response(
+            {"success": False, "message": "Inviter details are required."},
+            status=400,
+        )
+
+    if not invitees or not isinstance(invitees, list):
+        return Response(
+            {"success": False, "message": "At least one invitee is required."},
+            status=400,
+        )
+
+    company_name = "Growl Real Estate"
+    website_link = "https://growlrealestate.com" # <-- apni live website link yaha daalo
+
+    created_items = []
+    whatsapp_links = []
+
+    for item in invitees:
+        referral_type = item.get("referral_type")
+        project_ids = item.get("project_ids", []) or []
+        locations = item.get("locations", []) or []
+
+        invitee_name = item.get("name", "").strip()
+        invitee_phone = str(item.get("phone", "")).strip()
+        invitee_email = item.get("email", "").strip()
+        relation = item.get("relation", "").strip()
+
+        clean_phone = "".join(ch for ch in invitee_phone if ch.isdigit())
+        if clean_phone and len(clean_phone) == 10:
+            clean_phone = f"91{clean_phone}"
+
+        whatsapp_message = (
+            f"Referral\n"
+            f"👋 Hi {invitee_name}\n"
+            f"You’ve been invited by {inviter_name} to explore properties on {company_name} "
+            f"– India’s first consumer centric real-estate buying platform.\n\n"
+            f"🏡 Browse verified projects, take a live tour, and even book your dream home – all from your home.\n\n"
+            f"Tap below to start exploring 👇\n"
+            f"{website_link}\n\n"
+            f"(P.S. You’ll get an exclusive discount on your dream home if you book through us!)"
+        )
+
+        whatsapp_url = ""
+        if clean_phone:
+            whatsapp_url = f"https://wa.me/{clean_phone}?text={quote(whatsapp_message)}"
+
+        if referral_type == "project":
+            if not project_ids:
+                return Response(
+                    {"success": False, "message": "Please select at least one project."},
+                    status=400,
+                )
+
+            for project_id in project_ids:
+                referral = CustomerReferral.objects.create(
+                    user_id=user_id,
+                    inviter_name=inviter_name,
+                    inviter_phone=inviter_phone,
+                    invitee_name=invitee_name,
+                    invitee_phone=invitee_phone,
+                    invitee_email=invitee_email,
+                    relation=relation,
+                    referral_type="project",
+                    property_id=project_id,
+                    location="",
+                )
+                created_items.append(referral)
+
+            if whatsapp_url:
+                whatsapp_links.append({
+                    "name": invitee_name,
+                    "phone": invitee_phone,
+                    "url": whatsapp_url,
+                })
+
+        elif referral_type == "location":
+            if not locations:
+                return Response(
+                    {"success": False, "message": "Please select at least one city."},
+                    status=400,
+                )
+
+            for city in locations:
+                referral = CustomerReferral.objects.create(
+                    user_id=user_id,
+                    inviter_name=inviter_name,
+                    inviter_phone=inviter_phone,
+                    invitee_name=invitee_name,
+                    invitee_phone=invitee_phone,
+                    invitee_email=invitee_email,
+                    relation=relation,
+                    referral_type="location",
+                    property=None,
+                    location=city,
+                )
+                created_items.append(referral)
+
+            if whatsapp_url:
+                whatsapp_links.append({
+                    "name": invitee_name,
+                    "phone": invitee_phone,
+                    "url": whatsapp_url,
+                })
+
+        else:
+            return Response(
+                {"success": False, "message": "Invalid referral type."},
+                status=400,
+            )
+
+    serializer = CustomerReferralSerializer(created_items, many=True)
+    return Response(
+        {
+            "success": True,
+            "message": "Referral invite created successfully.",
+            "data": serializer.data,
+            "whatsapp_links": whatsapp_links,
+        },
+        status=201,
+    )
+
+@api_view(["GET"])
+def customer_referrals_list(request, user_id):
+    qs = CustomerReferral.objects.filter(user_id=user_id).order_by("-created_at")
+    serializer = CustomerReferralSerializer(qs, many=True)
+    return Response(serializer.data)

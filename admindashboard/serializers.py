@@ -405,3 +405,14 @@ class CustomerSearchHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerSearchHistory
         fields = "__all__"
+
+
+
+from .models import CustomerReferral
+
+class CustomerReferralSerializer(serializers.ModelSerializer):
+    property_title = serializers.CharField(source="property.title", read_only=True)
+
+    class Meta:
+        model = CustomerReferral
+        fields = "__all__"

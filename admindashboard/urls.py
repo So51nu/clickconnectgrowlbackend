@@ -29,7 +29,8 @@ urlpatterns = [
     path("customer/<int:user_id>/visits/", views.customer_visits, name="customer-visits"),
     path("customer/<int:user_id>/liked-videos/", views.customer_liked_videos, name="customer-liked-videos"),
     path("customer/<int:user_id>/search-history/", views.customer_search_history, name="customer-search-history"),
-
+    path("customer/referrals/create/", views.create_customer_referrals, name="create-customer-referrals"),
+    path("customer/<int:user_id>/referrals/", views.customer_referrals_list, name="customer-referrals-list"),
     path("customer/toggle-favorite/", views.customer_toggle_favorite, name="customer-toggle-favorite"),
     path("customer/add-view/", views.customer_add_view, name="customer-add-view"),
     path("customer/book-visit/", views.customer_book_visit, name="customer-book-visit"),

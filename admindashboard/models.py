@@ -361,3 +361,48 @@ class CustomerSearchHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} searched {self.title}"
+    
+
+
+class CustomerReferral(models.Model):
+    REFERRAL_TYPE_CHOICES = (
+        ("project", "Project"),
+        ("location", "Location"),
+    )
+
+    RELATION_CHOICES = (
+        ("friend", "Friend"),
+        ("family", "Family"),
+        ("colleague", "Colleague"),
+        ("relative", "Relative"),
+        ("other", "Other"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_referrals",
+    )
+    inviter_name = models.CharField(max_length=120)
+    inviter_phone = models.CharField(max_length=30)
+
+    invitee_name = models.CharField(max_length=120)
+    invitee_phone = models.CharField(max_length=30)
+    invitee_email = models.EmailField(blank=True, null=True)
+
+    relation = models.CharField(max_length=30, choices=RELATION_CHOICES)
+    referral_type = models.CharField(max_length=20, choices=REFERRAL_TYPE_CHOICES)
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_referrals",
+    )
+    location = models.CharField(max_length=255, blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.inviter_name} referred {self.invitee_name}"
