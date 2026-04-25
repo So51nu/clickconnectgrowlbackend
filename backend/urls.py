@@ -39,6 +39,7 @@ urlpatterns = [
     path("api/faq/",include("faq.urls")),
     path("api/aboutus/",include("aboutus.urls")),
     path("api/users/",include("users.urls")),
+    path("api/aichatbot/", include("aichatbot.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
