@@ -70,6 +70,7 @@ class Property(models.Model):
     ]
 
     title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, unique=True, blank=True, null=True, db_index=True)
     description = models.TextField(blank=True, default="")
     full_address = models.CharField(max_length=255)
     zip_code = models.CharField(max_length=20, blank=True, default="")
@@ -124,11 +125,33 @@ class Property(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def make_unique_property_slug(self):
+        base_slug = slugify(self.title or self.property_code or "property").strip("-")
+        if not base_slug:
+            base_slug = "property"
+
+        base_slug = base_slug[:250]
+        final_slug = base_slug
+        counter = 1
+
+        while Property.objects.filter(slug=final_slug).exclude(pk=self.pk).exists():
+            suffix = f"-{counter}"
+            final_slug = f"{base_slug[:280 - len(suffix)]}{suffix}"
+            counter += 1
+
+        return final_slug
+
+
     def save(self, *args, **kwargs):
         if self.city and not self.city_slug:
             self.city_slug = slugify(self.city)
+
         if self.developer_name and not self.developer_slug:
             self.developer_slug = slugify(self.developer_name)
+
+        if not self.slug:
+            self.slug = self.make_unique_property_slug()
+
         super().save(*args, **kwargs)
 
     def __str__(self):

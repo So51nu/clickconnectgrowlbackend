@@ -124,6 +124,7 @@ class PropertySerializer(serializers.ModelSerializer):
         model = Property
         fields = [
             "id",
+            "slug",
             "title",
             "description",
             "full_address",

@@ -967,6 +967,18 @@ def customer_viewed_properties(request, user_id):
 
 
 @api_view(["GET"])
+def property_detail_by_slug(request, slug):
+    try:
+        property_obj = Property.objects.get(slug=slug)
+    except Property.DoesNotExist:
+        return Response(
+            {"detail": "Property not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(PropertySerializer(property_obj, context={"request": request}).data)
+
+@api_view(["GET"])
 def customer_favorite_properties(request, user_id):
     property_ids = CustomerFavorite.objects.filter(user_id=user_id).values_list("property_id", flat=True)
     qs = Property.objects.filter(id__in=property_ids).order_by("-id")

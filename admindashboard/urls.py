@@ -5,6 +5,7 @@ urlpatterns = [
     path("dashboard/", views.dashboard_summary, name="dashboard-summary"),
 
     path("properties/", views.property_list_create, name="property-list-create"),
+    path("properties/slug/<slug:slug>/", views.property_detail_by_slug, name="property-detail-by-slug"),
     path("properties/<int:pk>/", views.property_detail, name="property-detail"),
     path("properties/<int:pk>/toggle-favorite/", views.property_toggle_favorite, name="property-toggle-favorite"),
 

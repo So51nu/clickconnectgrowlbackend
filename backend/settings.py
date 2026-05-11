@@ -349,6 +349,7 @@ INSTALLED_APPS = [
     "aboutus",
     "users",
     "aichatbot",
+    "headermenu",
 ]
 
 MIDDLEWARE = [
