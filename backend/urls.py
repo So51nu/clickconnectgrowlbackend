@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/users/",include("users.urls")),
     path("api/aichatbot/", include("aichatbot.urls")),
     path("api/headermenu/",include("headermenu.urls")),
+    path("api/footermenu/",include("footermenu.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

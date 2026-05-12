@@ -350,6 +350,7 @@ INSTALLED_APPS = [
     "users",
     "aichatbot",
     "headermenu",
+    "footermenu",
 ]
 
 MIDDLEWARE = [
