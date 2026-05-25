@@ -96,6 +96,23 @@ class SourceManagerPropertyCreateSerializer(serializers.ModelSerializer):
             "short_location",
             "carpet_area",
             "possession_date",
+            "seo_title",
+            "seo_description",
+            "seo_keywords",
+            "schema_type",
+            "rera_id",
+            "rera_disclaimer",
+            "availability_status",
+            "price_min",
+            "price_max",
+            "payment_schedule",
+            "compliance_docs",
+            "is_gated",
+            "show_price_publicly",
+            "show_floor_plan_publicly",
+            "show_brochure_publicly",
+            "show_seller_publicly",
+            "marketing_consent_text",
         ]
 
     def validate_amenities(self, value):

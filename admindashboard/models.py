@@ -122,6 +122,38 @@ class Property(models.Model):
     short_location = models.CharField(max_length=180, blank=True, default="")
     carpet_area = models.CharField(max_length=100, blank=True, default="")
     possession_date = models.CharField(max_length=100, blank=True, default="")
+
+    # SEO fields for public/indexable property pages
+    seo_title = models.CharField(max_length=255, blank=True, default="")
+    seo_description = models.TextField(blank=True, default="")
+    seo_keywords = models.CharField(max_length=255, blank=True, default="")
+    schema_type = models.CharField(max_length=80, blank=True, default="RealEstateListing")
+
+    # RERA / compliance fields
+    rera_id = models.CharField(max_length=100, blank=True, default="")
+    rera_disclaimer = models.TextField(
+        blank=True,
+        default="Project registered under MahaRERA. Login to view complete compliance details."
+    )
+    availability_status = models.CharField(max_length=100, blank=True, default="")
+    price_min = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    price_max = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    payment_schedule = models.TextField(blank=True, default="")
+    compliance_docs = models.JSONField(default=list, blank=True)
+
+    # Visibility controls for frontend-managed public/gated sections
+    is_gated = models.BooleanField(default=True)
+    show_price_publicly = models.BooleanField(default=True)
+    show_floor_plan_publicly = models.BooleanField(default=False)
+    show_brochure_publicly = models.BooleanField(default=False)
+    show_seller_publicly = models.BooleanField(default=False)
+
+    # Lead form consent text
+    marketing_consent_text = models.TextField(
+        blank=True,
+        default="I agree to receive property updates and marketing communication."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -229,6 +261,7 @@ class PropertyInquiry(models.Model):
     email = models.EmailField(blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
     message = models.TextField()
+    marketing_consent = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -707,6 +707,7 @@ def property_contact_seller(request, pk):
     email = request.data.get("email", "").strip()
     phone = request.data.get("phone", "").strip()
     message = request.data.get("message", "").strip()
+    marketing_consent = parse_bool(request.data.get("marketing_consent"), False)
 
     if not name or not message:
         return Response(
@@ -722,6 +723,7 @@ def property_contact_seller(request, pk):
         email=email,
         phone=phone,
         message=message,
+        marketing_consent=marketing_consent,
     )
 
     seller_email = seller.email if seller and seller.email else None

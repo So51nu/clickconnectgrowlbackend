@@ -53,7 +53,7 @@
 # class PropertyInquiryInline(admin.TabularInline):
 #     model = PropertyInquiry
 #     extra = 0
-#     readonly_fields = ("inquiry_type", "name", "email", "phone", "message", "created_at")
+#     readonly_fields = ("inquiry_type", "name", "email", "phone", "message", "marketing_consent", "created_at")
 #     can_delete = True
 
 # class PropertyReviewInline(admin.TabularInline):
@@ -67,7 +67,7 @@
 # class PropertyInquiryAdmin(admin.ModelAdmin):
 #     list_display = ("id", "property", "seller", "inquiry_type", "name", "email", "phone", "created_at")
 #     search_fields = ("property__title", "name", "email", "phone", "message")
-#     list_filter = ("inquiry_type", "created_at")
+#     list_filter = ("inquiry_type", "marketing_consent", "created_at")
 
 
 # @admin.register(PropertyReview)
@@ -138,7 +138,7 @@ class PropertyReviewInline(admin.TabularInline):
 class PropertyInquiryInline(admin.TabularInline):
     model = PropertyInquiry
     extra = 0
-    readonly_fields = ("inquiry_type", "name", "email", "phone", "message", "created_at")
+    readonly_fields = ("inquiry_type", "name", "email", "phone", "message", "marketing_consent", "created_at")
     can_delete = True
 
 
@@ -152,6 +152,8 @@ class PropertyAdmin(admin.ModelAdmin):
         "post_status",
         "contact_seller",
         "price",
+        "rera_id",
+        "is_gated",
         "is_favorite",
         "is_approved",
         "posting_date",
@@ -162,6 +164,11 @@ class PropertyAdmin(admin.ModelAdmin):
         "property_type",
         "property_label",
         "is_favorite",
+        "is_gated",
+        "show_price_publicly",
+        "show_floor_plan_publicly",
+        "show_brochure_publicly",
+        "show_seller_publicly",
         "contact_seller",
         "is_approved",
     )
@@ -171,8 +178,60 @@ class PropertyAdmin(admin.ModelAdmin):
         "full_address",
         "developer_name",
         "city",
+        "rera_id",
+        "seo_title",
+        "seo_description",
     )
     list_editable = ["post_status", "is_approved"]
+    fieldsets = (
+        ("Basic Property Details", {
+            "fields": (
+                "title", "slug", "description", "property_code",
+                "property_type", "property_status", "property_label", "post_status",
+                "is_favorite", "is_approved",
+            )
+        }),
+        ("Location Details", {
+            "fields": (
+                "full_address", "short_location", "location", "city", "city_slug",
+                "neighborhood", "state", "country", "zip_code", "map_embed_url",
+            )
+        }),
+        ("Pricing & Area", {
+            "fields": (
+                "price", "price_min", "price_max", "unit_price",
+                "before_price_label", "after_price_label", "size_sqft",
+                "carpet_area", "land_area_sqft", "rooms", "bedrooms",
+                "bathrooms", "garages", "garages_size_sqft", "year_built",
+            )
+        }),
+        ("SEO Details", {
+            "fields": ("seo_title", "seo_description", "seo_keywords", "schema_type")
+        }),
+        ("RERA & Compliance", {
+            "fields": (
+                "rera_id", "rera_disclaimer", "availability_status",
+                "payment_schedule", "compliance_docs",
+            )
+        }),
+        ("Frontend Visibility Controls", {
+            "fields": (
+                "is_gated", "show_price_publicly", "show_floor_plan_publicly",
+                "show_brochure_publicly", "show_seller_publicly",
+                "marketing_consent_text",
+            ),
+            "description": "Use these flags in frontend to decide what remains public and what appears after login."
+        }),
+        ("Developer & Seller", {
+            "fields": ("developer_name", "developer_slug", "contact_seller")
+        }),
+        ("Amenities, Possession & Media", {
+            "fields": (
+                "amenities", "possession_date", "virtual_tour_type",
+                "virtual_tour_embed_code", "video_url", "expiry_date",
+            )
+        }),
+    )
     inlines = [
         PropertyImageInline,
         PropertyFloorPlanInline,
@@ -219,10 +278,11 @@ class PropertyInquiryAdmin(admin.ModelAdmin):
         "name",
         "email",
         "phone",
+        "marketing_consent",
         "created_at",
     )
     search_fields = ("property__title", "name", "email", "phone", "message")
-    list_filter = ("inquiry_type", "created_at")
+    list_filter = ("inquiry_type", "marketing_consent", "created_at")
 
 
 @admin.register(PropertyReview)
