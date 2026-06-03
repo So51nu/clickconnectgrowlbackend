@@ -336,7 +336,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
+    "channels",
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
@@ -348,6 +348,7 @@ INSTALLED_APPS = [
     "faq",
     "aboutus",
     "users",
+    "notifications",
     "aichatbot",
     "headermenu",
     "footermenu",
@@ -368,10 +369,23 @@ ROOT_URLCONF = "backend.urls"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
+ASGI_APPLICATION = "backend.asgi.application"
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
