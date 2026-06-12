@@ -43,6 +43,7 @@ urlpatterns = [
     path("api/headermenu/",include("headermenu.urls")),
     path("api/footermenu/",include("footermenu.urls")),
     path("api/notifications/",include("notifications.urls")),
+    path("api/careers/",include("careers.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
