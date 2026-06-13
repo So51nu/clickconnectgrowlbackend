@@ -12,11 +12,24 @@ class Notification(models.Model):
     )
 
     title = models.CharField(max_length=255)
-    message = models.TextField()
+    message = models.TextField(blank=True)
     notification_type = models.CharField(
         max_length=50,
         choices=NOTIFICATION_TYPE_CHOICES,
-        default="general"
+        default="general",
+    )
+
+    image = models.FileField(
+        upload_to="notifications/images/",
+        null=True,
+        blank=True,
+        help_text="Optional notification image.",
+    )
+    video = models.FileField(
+        upload_to="notifications/videos/",
+        null=True,
+        blank=True,
+        help_text="Optional notification video.",
     )
 
     created_by = models.ForeignKey(
@@ -24,13 +37,14 @@ class Notification(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="created_notifications"
+        related_name="created_notifications",
     )
 
     recipients = models.ManyToManyField(
         User,
         through="UserNotification",
-        related_name="received_notifications"
+        related_name="received_notifications",
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,17 +62,22 @@ class UserNotification(models.Model):
     notification = models.ForeignKey(
         Notification,
         on_delete=models.CASCADE,
-        related_name="user_statuses"
+        related_name="user_statuses",
     )
 
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="notification_statuses"
+        related_name="notification_statuses",
     )
 
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
+
+    # User-side delete/hide. This does not delete the admin notification globally;
+    # it only hides the notification for this user.
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     delivered_at = models.DateTimeField(auto_now_add=True)
 
