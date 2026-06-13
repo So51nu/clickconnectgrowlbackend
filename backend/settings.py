@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "headermenu",
     "footermenu",
     "careers",
+    "cms_pages",
 ]
 
 MIDDLEWARE = [
